@@ -1,6 +1,6 @@
 # Local LLM MoM Evaluation — Qwen3:4B vs. Phi-4 Mini
 
-Just Go through the File named "Model Suggestion Report.html" in current repository for better understandings. Here in the Repository  
+Just Go through the File named "Model Suggestion Report.html" in current repository for better understandings. Don't see it's html code just run it in chrome and go through the page. Here in the Repository  
 1) Transcripts   ( used for MoM Generation )
 2) MoM Rules
 3) Prompt ( Given to local Models like here used qwen3:4B and phi4:mini )
