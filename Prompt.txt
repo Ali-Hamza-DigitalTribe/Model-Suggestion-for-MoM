@@ -1,0 +1,101 @@
+
+When reviewing the transcript, determine whether it contains sufficient formal meeting content to prepare official minutes.
+MODE A — For Informal or Insufficient Meeting Content
+If the transcript does not contain enough information to create formal minutes, prepare only a brief formal note based strictly on the information available in the transcript.
+If the purpose or reason for the discussion cannot be determined, state exactly:
+"The reason was not clearly stated in the transcript."
+MODE A Requirements
+Do not include any of the following sections:
+Meeting Title
+Chair / Presiding Officer
+Participants
+Agenda
+Summary of Proceedings
+Decisions
+Recommendations
+Directions
+Action Items
+Risks / Concerns
+Open Questions
+Next Steps
+Closing Note
+
+MODE B — For Formal Meeting Proceedings
+Use MODE B whenever the transcript reflects formal meeting activity, including one or more of the following:
+an agenda item or official matter;
+structured discussion;
+decision-making;
+directions or instructions;
+recommendations;
+assigned tasks;
+identified responsible person or department;
+stated deadlines;
+deferred matters;
+future actions or next steps.
+Short Transcript Exception
+A transcript may be brief because it is intended for testing or quality assurance purposes. Do not select MODE A solely because the transcript is short. If formal meeting substance is present, use MODE B.
+
+Minutes of Meeting
+Meeting Title
+{Provide a concise title based only on the transcript.}
+Meeting Status
+{The meeting was formally held. OR Formal proceedings are reflected in the transcript.}
+Chair / Presiding Officer
+{Name or designation if clearly stated; otherwise: "Chair / presiding officer not clearly identified."}
+Participants
+{List participants if identifiable; otherwise: "Participants not clearly identified."}
+Agenda / Matters Discussed
+{Matter 1}
+{Matter 2}
+{Matter 3}
+Summary of Proceedings
+{Provide a concise professional summary of the discussion. Do not reproduce the transcript verbatim.}
+Decisions / Directions / Recommendations
+{Record each confirmed decision, direction, or recommendation.}
+If none are evident, write:
+"No clear decisions, directions, or recommendations were recorded in the transcript."
+Action Items
+{Include action, responsible person/department, and deadline where explicitly stated.}
+If none are identified, write:
+"No specific action items were mentioned."
+Deferred / Pending Matters
+{List any matter that was postponed, deferred, or left pending.}
+If none are mentioned, write:
+"No deferred or pending matters were mentioned."
+Risks / Concerns
+{Record any concern, challenge, risk, or issue raised during the proceedings.}
+If none are identified, write:
+"No specific risks or concerns were mentioned."
+Open Questions
+{List unresolved questions if present.}
+If none are recorded, write:
+"No open questions were mentioned."
+Next Steps
+{State any agreed future actions or follow-up measures.}
+If not specified, write:
+"No clear next steps were mentioned."
+Closing Note
+{Provide any closing or adjournment information if clearly available; otherwise: "The transcript does not clearly mention the closing or adjournment time."}
+
+Mandatory Rules
+Use only information that appears in the transcript.
+Do not create or assume names that are not provided.
+Do not create designations or titles.
+Do not infer departments or organizations unless explicitly mentioned.
+Do not assume quorum details.
+Do not fabricate agenda items.
+Do not infer decisions, directions, or recommendations.
+Do not create action items where none exist.
+Do not invent deadlines or responsible persons.
+Do not infer future actions or next steps.
+Exclude timestamps, chunk identifiers, system markers, debugging text, and tags such as [STOP-TRANSCRIPT].
+Avoid reproducing large portions of the original transcript unless necessary for clarity.
+Do not use placeholders such as "Speaker 1", "Speaker 2", etc., in the final minutes when identities are unknown.
+Where identification is unavailable, use neutral references such as "a participant stated" only when required.
+If a proposal was merely discussed and not formally approved, record it as discussion or a pending matter rather than a decision.
+When both informal conversation and official proceedings are present, focus exclusively on the formal proceedings.
+For multilingual transcripts (including Urdu-English mixes), prepare the final minutes in clear, professional English.
+Maintain a concise, objective, and official tone throughout.
+
+			
+
