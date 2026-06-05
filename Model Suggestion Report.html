@@ -1,0 +1,1675 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Local LLM MoM Evaluation — Qwen3:4B vs Phi-4 Mini</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Source+Sans+3:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #1a1a2e;
+      --ink2: #2d2d44;
+      --muted: #5a5a7a;
+      --light: #8888aa;
+      --surf: #ffffff;
+      --surf2: #f7f7fb;
+      --surf3: #eeeeF5;
+      --bdr: #dddde8;
+      --bdr2: #c8c8d8;
+      --acc: #c84b31;
+      --acc2: #e8724a;
+      --teal: #1a7f74;
+      --teal2: #24a89a;
+      --gold: #b8860b;
+      --gold2: #d4a017;
+      --qwen: #2563eb;
+      --qwen-bg: rgba(37, 99, 235, .08);
+      --phi: #7c3aed;
+      --phi-bg: rgba(124, 58, 237, .08);
+      --sh: 0 2px 8px rgba(26, 26, 46, .08);
+      --sh2: 0 4px 20px rgba(26, 26, 46, .12);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      background: var(--surf2);
+      color: var(--ink);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 15px;
+      line-height: 1.65
+    }
+
+    /* ── Layout ── */
+    .page-wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem
+    }
+
+    /* ── Cover Banner ── */
+    .cover {
+      background: var(--ink);
+      color: #fff;
+      padding: 3rem 3rem 2.5rem;
+      border-radius: 1rem;
+      margin-bottom: 2.5rem;
+      position: relative;
+      overflow: hidden
+    }
+
+    .cover::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")
+    }
+
+    .cover-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .7rem;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, .5);
+      margin-bottom: .75rem
+    }
+
+    .cover h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.25rem;
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: .625rem
+    }
+
+    .cover h1 span {
+      color: var(--acc2)
+    }
+
+    .cover-sub {
+      font-size: .9375rem;
+      color: rgba(255, 255, 255, .65);
+      margin-bottom: 1.75rem;
+      max-width: 640px
+    }
+
+    .cover-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem
+    }
+
+    .cover-kv {
+      display: flex;
+      flex-direction: column;
+      gap: 3px
+    }
+
+    .cover-kv .k {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: rgba(255, 255, 255, .4)
+    }
+
+    .cover-kv .v {
+      font-size: .9375rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, .9)
+    }
+
+    .cover-badge {
+      position: absolute;
+      right: 2.5rem;
+      top: 2rem;
+      background: rgba(200, 75, 49, .25);
+      border: 1px solid rgba(200, 75, 49, .5);
+      border-radius: .75rem;
+      padding: .5rem 1.25rem;
+      font-size: .875rem;
+      font-weight: 700;
+      color: var(--acc2)
+    }
+
+    /* ── Section headings ── */
+    .sec {
+      margin-bottom: 2.25rem
+    }
+
+    .sec-hd {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: .625rem;
+      border-bottom: 2px solid var(--bdr)
+    }
+
+    .sec-hd .ico {
+      width: 34px;
+      height: 34px;
+      border-radius: .5rem;
+      background: var(--ink);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .9rem;
+      flex-shrink: 0
+    }
+
+    .sec-hd h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1875rem;
+      font-weight: 700;
+      color: var(--ink2)
+    }
+
+    .sec-hd .sec-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .7rem;
+      color: var(--light);
+      margin-left: auto
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surf);
+      border: 1px solid var(--bdr);
+      border-radius: .875rem;
+      box-shadow: var(--sh)
+    }
+
+    .card-body {
+      padding: 1.25rem 1.5rem
+    }
+
+    .card-sm {
+      padding: .875rem 1.125rem
+    }
+
+    /* ── Executive Summary boxes ── */
+    .exec-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem
+    }
+
+    .kpi {
+      background: var(--surf);
+      border: 1px solid var(--bdr);
+      border-radius: .875rem;
+      padding: 1.125rem 1.25rem;
+      box-shadow: var(--sh)
+    }
+
+    .kpi .kpi-ico {
+      font-size: 1.4rem;
+      margin-bottom: .5rem
+    }
+
+    .kpi .kpi-label {
+      font-size: .7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      color: var(--muted);
+      margin-bottom: .375rem
+    }
+
+    .kpi .kpi-val {
+      font-size: 1.375rem;
+      font-weight: 800;
+      font-family: 'Playfair Display', serif;
+      color: var(--ink)
+    }
+
+    .kpi .kpi-note {
+      font-size: .75rem;
+      color: var(--light);
+      margin-top: .25rem
+    }
+
+    /* ── Winner callout ── */
+    .winner-box {
+      background: linear-gradient(135deg, #fff9f0, #fff3e0);
+      border: 2px solid var(--gold);
+      border-radius: 1rem;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.25rem
+    }
+
+    .winner-box h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      color: var(--gold);
+      margin-bottom: .375rem
+    }
+
+    .winner-box p {
+      font-size: .875rem;
+      color: var(--ink2);
+      line-height: 1.6
+    }
+
+    /* ── Tables ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .875rem
+    }
+
+    th {
+      padding: .625rem .875rem;
+      text-align: left;
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 2px solid var(--bdr);
+      background: var(--surf3)
+    }
+
+    td {
+      padding: .625rem .875rem;
+      border-bottom: 1px solid var(--bdr);
+      color: var(--ink2);
+      vertical-align: top
+    }
+
+    tr:last-child td {
+      border-bottom: none
+    }
+
+    tr:hover td {
+      background: rgba(99, 99, 160, .03)
+    }
+
+    .tbl-wrap {
+      overflow-x: auto;
+      border-radius: .875rem;
+      border: 1px solid var(--bdr);
+      box-shadow: var(--sh)
+    }
+
+    /* ── Badge chips ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 9999px
+    }
+
+    .badge-qwen {
+      background: var(--qwen-bg);
+      color: var(--qwen)
+    }
+
+    .badge-phi {
+      background: var(--phi-bg);
+      color: var(--phi)
+    }
+
+    .badge-green {
+      background: rgba(22, 163, 74, .1);
+      color: #16a34a
+    }
+
+    .badge-amber {
+      background: rgba(217, 119, 6, .12);
+      color: #b45309
+    }
+
+    .badge-red {
+      background: rgba(220, 38, 38, .1);
+      color: #dc2626
+    }
+
+    .badge-gray {
+      background: var(--surf3);
+      color: var(--muted)
+    }
+
+    .badge-gold {
+      background: rgba(184, 134, 11, .12);
+      color: var(--gold)
+    }
+
+    .badge-teal {
+      background: rgba(26, 127, 116, .1);
+      color: var(--teal)
+    }
+
+    .badge-winner {
+      background: rgba(184, 134, 11, .18);
+      color: var(--gold);
+      border: 1px solid rgba(184, 134, 11, .35)
+    }
+
+    /* ── Rating bars ── */
+    .rat-bar {
+      height: 7px;
+      border-radius: 9999px;
+      background: var(--surf3);
+      overflow: hidden;
+      margin-top: 4px
+    }
+
+    .rat-fill {
+      height: 100%;
+      border-radius: 9999px
+    }
+
+    .rat-qwen .rat-fill {
+      background: var(--qwen)
+    }
+
+    .rat-phi .rat-fill {
+      background: var(--phi)
+    }
+
+    /* ── Side-by-side transcript cards ── */
+    .side-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem
+    }
+
+    @media(max-width:700px) {
+      .side-grid {
+        grid-template-columns: 1fr
+      }
+    }
+
+    .model-card {
+      border-radius: .875rem;
+      overflow: hidden;
+      border: 2px solid var(--bdr)
+    }
+
+    .model-card-hd {
+      padding: .875rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: .625rem
+    }
+
+    .model-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: .625rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0
+    }
+
+    .model-card-body {
+      padding: 1rem;
+      background: var(--surf);
+      font-size: .8125rem;
+      line-height: 1.7;
+      color: var(--ink2);
+      max-height: 340px;
+      overflow-y: auto;
+      scrollbar-width: thin
+    }
+
+    /* ── Recommendations table color rows ── */
+    .rec-good {
+      background: rgba(22, 163, 74, .04)
+    }
+
+    .rec-mid {
+      background: rgba(217, 119, 6, .04)
+    }
+
+    /* ── Progress bars for perf table ── */
+    .pbar {
+      height: 6px;
+      border-radius: 9999px;
+      background: var(--surf3);
+      overflow: hidden;
+      margin-top: 3px
+    }
+
+    .pbar-fill {
+      height: 100%;
+      border-radius: 9999px;
+      background: var(--teal)
+    }
+
+    /* ── Divider ── */
+    hr.sep {
+      border: none;
+      border-top: 1px solid var(--bdr);
+      margin: 2rem 0
+    }
+
+    /* ── Inline callout ── */
+    .callout {
+      border-left: 4px solid var(--acc);
+      background: rgba(200, 75, 49, .06);
+      border-radius: 0 .625rem .625rem 0;
+      padding: .875rem 1.125rem;
+      font-size: .875rem;
+      line-height: 1.65;
+      color: var(--ink2);
+      margin-bottom: 1rem
+    }
+
+    .callout.teal {
+      border-color: var(--teal);
+      background: rgba(26, 127, 116, .06)
+    }
+
+    .callout.gold {
+      border-color: var(--gold);
+      background: rgba(184, 134, 11, .07)
+    }
+
+    .callout strong {
+      color: var(--ink)
+    }
+
+    /* ── Pill list ── */
+    .pill-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem;
+      margin-top: .625rem
+    }
+
+    .pill {
+      background: var(--surf3);
+      border: 1px solid var(--bdr);
+      border-radius: .375rem;
+      padding: 4px 10px;
+      font-size: .75rem;
+      color: var(--ink2)
+    }
+
+    /* ── Transcript info cards ── */
+    .tx-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem
+    }
+
+    .tx-card {
+      background: var(--surf);
+      border: 1px solid var(--bdr);
+      border-radius: .875rem;
+      padding: 1.125rem 1.25rem;
+      box-shadow: var(--sh)
+    }
+
+    .tx-card-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .7rem;
+      color: var(--light);
+      margin-bottom: .25rem
+    }
+
+    .tx-card-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: .5rem
+    }
+
+    .tx-card-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: .8125rem;
+      padding: 3px 0;
+      border-bottom: 1px solid var(--surf3)
+    }
+
+    .tx-card-row:last-child {
+      border-bottom: none
+    }
+
+    .tx-card-row .k {
+      color: var(--muted)
+    }
+
+    .tx-card-row .v {
+      font-weight: 600;
+      color: var(--ink2)
+    }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      padding: 2rem 0 1rem;
+      font-size: .75rem;
+      color: var(--light);
+      border-top: 1px solid var(--bdr);
+      margin-top: 3rem
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="page-wrap">
+
+    <!-- ═══ COVER ═══ -->
+    <div class="cover">
+      <div class="cover-badge">CPU-Only Evaluation</div>
+      <div class="cover-tag">Local LLM Evaluation Report · Minutes of Meeting Generation</div>
+      <h1>Qwen3:4B <span>vs</span> Phi-4 Mini</h1>
+      <p class="cover-sub">A formal evaluation of locally-hosted language models for automated Minutes of Meeting
+        generation from meeting transcripts on consumer CPU hardware.</p>
+      <div class="cover-meta">
+        <div class="cover-kv"><span class="k">Date Generated</span><span class="v">June 5, 2026</span></div>
+        <div class="cover-kv"><span class="k">Transcripts Evaluated</span><span class="v">4 Transcripts</span></div>
+        <div class="cover-kv"><span class="k">Models Compared</span><span class="v">Qwen3:4B · Phi-4 Mini</span></div>
+        <div class="cover-kv"><span class="k">Hardware</span><span class="v">Intel i5-8th Gen · 16 GB RAM</span></div>
+        <div class="cover-kv"><span class="k">Inference Engine</span><span class="v">Ollama (local)</span></div>
+      </div>
+    </div>
+
+
+    <!-- ═══ A. EXECUTIVE SUMMARY ═══ -->
+    <div class="sec">
+      <div class="sec-hd">
+        <div class="ico">A</div>
+        <h2>Executive Summary</h2><span class="sec-num">§01</span>
+      </div>
+
+      <div class="exec-grid">
+        <div class="kpi">
+          <div class="kpi-ico">📄</div>
+          <div class="kpi-label">Transcripts Processed</div>
+          <div class="kpi-val">4</div>
+          <div class="kpi-note">Mixed formal &amp; informal content</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-ico">🤖</div>
+          <div class="kpi-label">Models Evaluated</div>
+          <div class="kpi-val">2</div>
+          <div class="kpi-note">Qwen3:4B &amp; Phi-4 Mini (GGUF)</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-ico">⏱</div>
+          <div class="kpi-label">Qwen3 Total Time</div>
+          <div class="kpi-val">3,266 s</div>
+          <div class="kpi-note">~54.4 min across 3 transcripts</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-ico">⚡</div>
+          <div class="kpi-label">Phi-4 Total Time</div>
+          <div class="kpi-val">690 s</div>
+          <div class="kpi-note">~11.5 min across 3 transcripts</div>
+        </div>
+      </div>
+
+      <div class="winner-box">
+        <h3>🏆 Overall Recommendation</h3>
+        <p><strong>Phi-4 Mini is recommended as the production model</strong> for CPU-only MoM generation on this
+          hardware profile. It is <strong>4.7× faster</strong> than Qwen3:4B while producing well-structured,
+          hallucination-controlled output. Qwen3:4B produces slightly richer detail (particularly on long formal
+          transcripts such as transcript_3.txt) but its generation times — exceeding 25 minutes for a single transcript
+          — render it impractical for operational use on an Intel i5 8th Gen. For non-time-critical batch jobs where
+          output quality is paramount, Qwen3:4B may still be preferred.</p>
+      </div>
+
+      <div class="callout gold">
+        <strong>Key Findings at a Glance:</strong><br>
+        Phi-4 Mini completes all three transcripts in under 12 minutes total. Qwen3:4B exceeds 26 minutes on
+        transcript_1.txt alone. Both models respect the MoM prompt structure and avoid inventing names or decisions not
+        present in the transcript. Qwen3:4B produces more nuanced summaries on longer, formal proceedings; Phi-4 Mini is
+        more consistent but occasionally adds cautionary meta-notes not in the original transcript.
+      </div>
+    </div>
+
+
+    <!-- ═══ B. TEST ENVIRONMENT ═══ -->
+    <div class="sec">
+      <div class="sec-hd">
+        <div class="ico">B</div>
+        <h2>Test Environment</h2><span class="sec-num">§02</span>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Specification</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>CPU</strong></td>
+              <td>Intel Core i5 — 8th Generation</td>
+              <td>No hardware acceleration; all inference on CPU</td>
+            </tr>
+            <tr>
+              <td><strong>RAM</strong></td>
+              <td>16 GB</td>
+              <td>Shared between OS, Ollama, and model weights</td>
+            </tr>
+            <tr>
+              <td><strong>Storage</strong></td>
+              <td>512 GB SSD</td>
+              <td>Model weights and transcript files stored locally</td>
+            </tr>
+            <tr>
+              <td><strong>Operating System</strong></td>
+              <td>Windows</td>
+              <td>Version not specified</td>
+            </tr>
+            <tr>
+              <td><strong>Inference Engine</strong></td>
+              <td>Ollama (local)</td>
+              <td>Version not provided in supplied files</td>
+            </tr>
+            <tr>
+              <td><strong>GPU</strong></td>
+              <td>None / Not used</td>
+              <td>Pure CPU inference throughout evaluation</td>
+            </tr>
+            <tr>
+              <td><strong>Qwen3:4B Quantization</strong></td>
+              <td>Q4_K_M</td>
+              <td>4-bit quantization via Ollama pull</td>
+            </tr>
+            <tr>
+              <td><strong>Phi-4 Mini Quantization</strong></td>
+              <td>GGUF (imported)</td>
+              <td>Downloaded from Hugging Face; imported into Ollama</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+
+    <!-- ═══ C. SOURCE TRANSCRIPTS ═══ -->
+    <div class="sec">
+      <div class="sec-hd">
+        <div class="ico">C</div>
+        <h2>Source Transcript Information</h2><span class="sec-num">§03</span>
+      </div>
+
+      <div class="tx-grid">
+        <div class="tx-card">
+          <div class="tx-card-num">TRANSCRIPT 1</div>
+          <div class="tx-card-title">Scheduling &amp; Email Policy Meeting</div>
+          <div class="tx-card-row"><span class="k">File</span><span class="v">transcript_1.txt</span></div>
+          <div class="tx-card-row"><span class="k">Size</span><span class="v">5,456 bytes (~790 words)</span></div>
+          <div class="tx-card-row"><span class="k">Duration (recorded)</span><span class="v">00:00 – 07:15</span></div>
+          <div class="tx-card-row"><span class="k">Meeting Type</span><span class="v">Internal operations
+              (informal)</span></div>
+          <div class="tx-card-row"><span class="k">Language</span><span class="v">English</span></div>
+          <div class="tx-card-row"><span class="k">Mode</span><span class="v">MODE B (formal proceedings)</span></div>
+          <p style="font-size:.8rem;color:var(--muted);margin-top:.75rem">A small-team operations meeting covering
+            calendar/scheduling tool conflicts (Outlook vs. web tracker), email subject line and priority labelling
+            policy, and office party planning. Participant identities are not explicitly named except for "Ellen".</p>
+        </div>
+        <div class="tx-card">
+          <div class="tx-card-num">TRANSCRIPT 2</div>
+          <div class="tx-card-title">Pakistan Cabinet Meeting Address</div>
+          <div class="tx-card-row"><span class="k">File</span><span class="v">transcript_2.txt</span></div>
+          <div class="tx-card-row"><span class="k">Size</span><span class="v">2,101 bytes (~310 words)</span></div>
+          <div class="tx-card-row"><span class="k">Duration (recorded)</span><span class="v">00:00 – 03:01</span></div>
+          <div class="tx-card-row"><span class="k">Meeting Type</span><span class="v">Government / Cabinet
+              address</span></div>
+          <div class="tx-card-row"><span class="k">Language</span><span class="v">English (translated)</span></div>
+          <div class="tx-card-row"><span class="k">Mode</span><span class="v">MODE B (formal proceedings)</span></div>
+          <p style="font-size:.8rem;color:var(--muted);margin-top:.75rem">A translated speech from a Pakistan cabinet
+            meeting addressing a major government transaction, recognition of a national award recipient, and an
+            invitation to the PTI for political dialogue. Participant names are not individually identified.</p>
+        </div>
+        <div class="tx-card">
+          <div class="tx-card-num">TRANSCRIPT 3</div>
+          <div class="tx-card-title">Pakistan Senate Committee Proceedings</div>
+          <div class="tx-card-row"><span class="k">File</span><span class="v">transcript_3.txt</span></div>
+          <div class="tx-card-row"><span class="k">Size</span><span class="v">18,185 bytes (~2,600 words)</span></div>
+          <div class="tx-card-row"><span class="k">Duration</span><span class="v">Not specified in transcript</span>
+          </div>
+          <div class="tx-card-row"><span class="k">Meeting Type</span><span class="v">Legislative / Senate
+              committee</span></div>
+          <div class="tx-card-row"><span class="k">Language</span><span class="v">English (Urdu-English mix,
+              translated)</span></div>
+          <div class="tx-card-row"><span class="k">Mode</span><span class="v">MODE B (formal proceedings)</span></div>
+          <p style="font-size:.8rem;color:var(--muted);margin-top:.75rem">An extended Senate committee session covering
+            court interference in committee proceedings (Article 69), domestic violence legislation, the Bounty Rape
+            Bill, CBDR-RC, gender issues, Balochistan unrest, and Khyber Pakhtunkhwa emergency declaration. Multiple
+            named participants identified.</p>
+        </div>
+      </div>
+    </div>
+
+    <!--     
+    <!-- ═══ D. MODEL OVERVIEW ═══ -->
+    <div class="sec">
+      <div class="sec-hd">
+        <div class="ico">D</div>
+        <h2>Model Overview</h2><span class="sec-num">§04</span>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Attribute</th>
+              <th><span class="badge badge-qwen">Qwen3:4B</span></th>
+              <th><span class="badge badge-phi">Phi-4 Mini</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Developer</strong></td>
+              <td>Alibaba Cloud</td>
+              <td>Microsoft</td>
+            </tr>
+            <tr>
+              <td><strong>Parameter Size</strong></td>
+              <td>4 Billion</td>
+              <td>~3.8 Billion</td>
+            </tr>
+            <tr>
+              <td><strong>Quantization</strong></td>
+              <td>Q4_K_M (4-bit, K-Quant)</td>
+              <td>GGUF (format; exact quant not stated)</td>
+            </tr>
+            <tr>
+              <td><strong>Source / Download</strong></td>
+              <td>Ollama pull command</td>
+              <td>Hugging Face → imported into Ollama</td>
+            </tr>
+            <tr>
+              <td><strong>Deployment Method</strong></td>
+              <td>Ollama native</td>
+              <td>GGUF imported into Ollama</td>
+            </tr>
+            <tr>
+              <td><strong>Context Length</strong></td>
+              <td>32K tokens (default Ollama)</td>
+              <td>128K tokens (architecture)</td>
+            </tr>
+            <tr>
+              <td><strong>Prompt Length Used</strong></td>
+              <td>Extended MODE A/B prompt</td>
+              <td>Shortened MODE A/B prompt (context-optimised)</td>
+            </tr>
+            <tr>
+              <td><strong>Approx. RAM Usage</strong></td>
+              <td>~3.5 – 4.5 GB</td>
+              <td>~3.0 – 4.0 GB</td>
+            </tr>
+            <tr>
+              <td><strong>Thinking Mode</strong></td>
+              <td>Enabled by default (chain-of-thought)</td>
+              <td>Not applicable</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:.8125rem;color:var(--muted);margin-top:.625rem">Note: Qwen3:4B uses an internal
+        thinking/reasoning step before producing output, which contributes to its longer generation times but may
+        improve output coherence on complex transcripts.</p>
+    </div> -->
+
+
+    <!-- ═══ D. PERFORMANCE COMPARISON ═══ -->
+    <div class="sec">
+      <div class="sec-hd">
+        <div class="ico">D</div>
+        <h2>Performance Comparison</h2><span class="sec-num">§05</span>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Transcript</th>
+              <th>Model</th>
+              <th>Generation Time</th>
+              <th>Relative Speed</th>
+              <th>Completion</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td rowspan="2" style="vertical-align:middle;font-weight:600">transcript_1.txt<br><span
+                  style="font-size:.75rem;font-weight:400;color:var(--muted)">~790 words</span></td>
+              <td><span class="badge badge-qwen">Qwen3:4B</span></td>
+              <td><strong>1,567.4 s</strong> <span style="font-size:.75rem;color:var(--muted)">(~26.1 min)</span></td>
+              <td>
+                <div style="font-size:.75rem;color:var(--muted)">6.7× slower</div>
+                <div class="pbar">
+                  <div class="pbar-fill" style="width:15%;background:var(--qwen)"></div>
+                </div>
+              </td>
+              <td><span class="badge badge-green">Complete</span></td>
+              <td style="font-size:.8rem">Thinking mode active; full structured MoM produced. Missing action items and
+                office party sections.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-phi">Phi-4 Mini</span></td>
+              <td><strong>232.4 s</strong> <span style="font-size:.75rem;color:var(--muted)">(~3.9 min)</span></td>
+              <td>
+                <div style="font-size:.75rem;color:var(--teal)">Baseline</div>
+                <div class="pbar">
+                  <div class="pbar-fill" style="width:100%"></div>
+                </div>
+              </td>
+              <td><span class="badge badge-green">Complete</span></td>
+              <td style="font-size:.8rem">All MoM sections present. Includes office party item. Adds meta-notes ("In a
+                real-world scenario…") not requested by prompt.</td>
+            </tr>
+            <tr style="border-top:2px solid var(--bdr)">
+              <td rowspan="2" style="vertical-align:middle;font-weight:600">transcript_2.txt<br><span
+                  style="font-size:.75rem;font-weight:400;color:var(--muted)">~310 words</span></td>
+              <td><span class="badge badge-qwen">Qwen3:4B</span></td>
+              <td><strong>1,461.1 s</strong> <span style="font-size:.75rem;color:var(--muted)">(~24.4 min)</span></td>
+              <td>
+                <div style="font-size:.75rem;color:var(--muted)">7.9× slower</div>
+                <div class="pbar">
+                  <div class="pbar-fill" style="width:13%;background:var(--qwen)"></div>
+                </div>
+              </td>
+              <td><span class="badge badge-green">Complete</span></td>
+              <td style="font-size:.8rem">Well-structured; correctly flagged "no clear decisions" where warranted. PTI
+                dialogue correctly logged as pending.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-phi">Phi-4 Mini</span></td>
+              <td><strong>185.4 s</strong> <span style="font-size:.75rem;color:var(--muted)">(~3.1 min)</span></td>
+              <td>
+                <div style="font-size:.75rem;color:var(--teal)">Baseline</div>
+                <div class="pbar">
+                  <div class="pbar-fill" style="width:100%"></div>
+                </div>
+              </td>
+              <td><span class="badge badge-green">Complete</span></td>
+              <td style="font-size:.8rem">Reasonable output; references "Marala transaction" (slightly misidentified
+                detail). Lacks deferred matters / risks sections.</td>
+            </tr>
+            <tr style="border-top:2px solid var(--bdr)">
+              <td rowspan="2" style="vertical-align:middle;font-weight:600">transcript_3.txt<br><span
+                  style="font-size:.75rem;font-weight:400;color:var(--muted)">~2,600 words</span></td>
+              <td><span class="badge badge-qwen">Qwen3:4B</span></td>
+              <td><strong>237.5 s</strong> <span style="font-size:.75rem;color:var(--muted)">(~4.0 min)</span></td>
+              <td>
+                <div style="font-size:.75rem;color:var(--muted)">0.87× (faster here)</div>
+                <div class="pbar">
+                  <div class="pbar-fill" style="width:87%;background:var(--qwen)"></div>
+                </div>
+              </td>
+              <td><span class="badge badge-green">Complete</span></td>
+              <td style="font-size:.8rem">Best output in evaluation. Named participants correctly extracted. Detailed
+                structured sections. Slight verbatim quoting (minor).</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-phi">Phi-4 Mini</span></td>
+              <td><strong>272.4 s</strong> <span style="font-size:.75rem;color:var(--muted)">(~4.5 min)</span></td>
+              <td>
+                <div style="font-size:.75rem;color:var(--muted)">1.15× slower here</div>
+                <div class="pbar">
+                  <div class="pbar-fill" style="width:87%"></div>
+                </div>
+              </td>
+              <td><span class="badge badge-amber">Partial</span></td>
+              <td style="font-size:.8rem">Output is condensed summary, not full MoM. Misses deferred matters, risks, and
+                action items. Less suited to complex legislative content.</td>
+            </tr>
+            <tr style="background:var(--surf3);border-top:2px solid var(--bdr2)">
+              <td colspan="2"><strong>TOTALS</strong></td>
+              <td><strong>Qwen3: 3,266 s</strong> (~54.4 min)</td>
+              <td><strong>Phi-4: 690.2 s</strong> (~11.5 min)</td>
+              <td colspan="2"><strong>Phi-4 Mini is 4.7× faster overall</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+
+    <!-- ═══ F. QUALITY EVALUATION ═══
+    <div class="sec">
+      <div class="sec-hd">
+        <div class="ico">F</div>
+        <h2>Quality Evaluation</h2><span class="sec-num">§06</span>
+      </div>
+
+      <p style="font-size:.875rem;color:var(--muted);margin-bottom:1rem">Ratings on a 1–5 scale: ⭐ = Poor, ⭐⭐⭐⭐⭐ =
+        Excellent. Assessed across all three transcripts combined.</p>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Criterion</th>
+              <th>Qwen3:4B Rating</th>
+              <th>Phi-4 Mini Rating</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Instruction Following</strong></td>
+              <td>
+                ⭐⭐⭐⭐ <span class="badge badge-qwen" style="margin-left:4px">4/5</span>
+                <div class="rat-bar rat-qwen">
+                  <div class="rat-fill" style="width:80%"></div>
+                </div>
+              </td>
+              <td>
+                ⭐⭐⭐⭐ <span class="badge badge-phi" style="margin-left:4px">4/5</span>
+                <div class="rat-bar rat-phi">
+                  <div class="rat-fill" style="width:80%"></div>
+                </div>
+              </td>
+              <td style="font-size:.8rem">Both follow the MODE A/B prompt. Phi-4 adds unrequested meta-notes. Qwen3
+                occasionally abbreviates some sections.</td>
+            </tr>
+            <tr>
+              <td><strong>MoM Structure Compliance</strong></td>
+              <td>
+                ⭐⭐⭐⭐ <span class="badge badge-qwen" style="margin-left:4px">4/5</span>
+                <div class="rat-bar rat-qwen">
+                  <div class="rat-fill" style="width:80%"></div>
+                </div>
+              </td>
+              <td>
+                ⭐⭐⭐⭐ <span class="badge badge-phi" style="margin-left:4px">4/5</span>
+                <div class="rat-bar rat-phi">
+                  <div class="rat-fill" style="width:80%"></div>
+                </div>
+              </td>
+              <td style="font-size:.8rem">Both produce required headings. On transcript_3, Phi-4 collapses to a summary
+                format rather than full MoM headings.</td>
+            </tr>
+            <tr>
+              <td><strong>Content Accuracy</strong></td>
+              <td>
+                ⭐⭐⭐⭐⭐ <span class="badge badge-qwen" style="margin-left:4px">5/5</span>
+                <div class="rat-bar rat-qwen">
+                  <div class="rat-fill" style="width:100%"></div>
+                </div>
+              </td>
+              <td>
+                ⭐⭐⭐ <span class="badge badge-phi" style="margin-left:4px">3/5</span>
+                <div class="rat-bar rat-phi">
+                  <div class="rat-fill" style="width:60%"></div>
+                </div>
+              </td>
+              <td style="font-size:.8rem">Qwen3 is more accurate: correctly identifies agenda items, decisions, and
+                deferred matters. Phi-4 introduces minor inaccuracies (e.g., "Marala transaction").</td>
+            </tr>
+            <tr>
+              <td><strong>Hallucination Risk</strong></td>
+              <td>
+                ⭐⭐⭐⭐⭐ <span class="badge badge-green" style="margin-left:4px">Low</span>
+                <div class="rat-bar rat-qwen">
+                  <div class="rat-fill" style="width:95%"></div>
+                </div>
+              </td>
+              <td>
+                ⭐⭐⭐⭐ <span class="badge badge-amber" style="margin-left:4px">Low–Med</span>
+                <div class="rat-bar rat-phi">
+                  <div class="rat-fill" style="width:75%"></div>
+                </div>
+              </td>
+              <td style="font-size:.8rem">Neither model invents names or decisions. Phi-4 occasionally over-infers
+                context (e.g., speculating on "filter requirements"). Qwen3 stays closer to transcript.</td>
+            </tr>
+            <tr>
+              <td><strong>Action Item Extraction</strong></td>
+              <td>
+                ⭐⭐⭐⭐ <span class="badge badge-qwen" style="margin-left:4px">4/5</span>
+                <div class="rat-bar rat-qwen">
+                  <div class="rat-fill" style="width:80%"></div>
+                </div>
+              </td>
+              <td>
+                ⭐⭐⭐ <span class="badge badge-phi" style="margin-left:4px">3/5</span>
+                <div class="rat-bar rat-phi">
+                  <div class="rat-fill" style="width:60%"></div>
+                </div>
+              </td>
+              <td style="font-size:.8rem">Qwen3 correctly identifies owner-linked tasks where possible. Phi-4 captures
+                tasks but attributes them loosely (e.g., "Ellen" inferred from context).</td>
+            </tr>
+            <tr>
+              <td><strong>Decision Extraction</strong></td>
+              <td>
+                ⭐⭐⭐⭐⭐ <span class="badge badge-qwen" style="margin-left:4px">5/5</span>
+                <div class="rat-bar rat-qwen">
+                  <div class="rat-fill" style="width:100%"></div>
+                </div>
+              </td>
+              <td>
+                ⭐⭐⭐ <span class="badge badge-phi" style="margin-left:4px">3/5</span>
+                <div class="rat-bar rat-phi">
+                  <div class="rat-fill" style="width:60%"></div>
+                </div>
+              </td>
+              <td style="font-size:.8rem">Qwen3 correctly flags "no clear decisions" for transcript_2 rather than
+                fabricating them. Phi-4 sometimes lists discussions as decisions.</td>
+            </tr>
+            <tr>
+              <td><strong>Participant Identification</strong></td>
+              <td>
+                ⭐⭐⭐⭐ <span class="badge badge-qwen" style="margin-left:4px">4/5</span>
+                <div class="rat-bar rat-qwen">
+                  <div class="rat-fill" style="width:80%"></div>
+                </div>
+              </td>
+              <td>
+                ⭐⭐⭐ <span class="badge badge-phi" style="margin-left:4px">3/5</span>
+                <div class="rat-bar rat-phi">
+                  <div class="rat-fill" style="width:60%"></div>
+                </div>
+              </td>
+              <td style="font-size:.8rem">Qwen3 correctly extracts named participants from transcript_3 (Senator Aisha
+                Raza, Salim Madhubwala, etc.). Phi-4 lists fewer participants and adds title caveats.</td>
+            </tr>
+            <tr>
+              <td><strong>Professional Tone</strong></td>
+              <td>
+                ⭐⭐⭐⭐⭐ <span class="badge badge-qwen" style="margin-left:4px">5/5</span>
+                <div class="rat-bar rat-qwen">
+                  <div class="rat-fill" style="width:100%"></div>
+                </div>
+              </td>
+              <td>
+                ⭐⭐⭐⭐ <span class="badge badge-phi" style="margin-left:4px">4/5</span>
+                <div class="rat-bar rat-phi">
+                  <div class="rat-fill" style="width:80%"></div>
+                </div>
+              </td>
+              <td style="font-size:.8rem">Both produce professional language. Phi-4 occasionally uses conversational
+                aside phrases ("Note: In a real-world scenario...") that reduce formality.</td>
+            </tr>
+            <tr>
+              <td><strong>Overall Reliability</strong></td>
+              <td>
+                ⭐⭐⭐⭐ <span class="badge badge-qwen" style="margin-left:4px">4/5</span>
+                <div class="rat-bar rat-qwen">
+                  <div class="rat-fill" style="width:80%"></div>
+                </div>
+              </td>
+              <td>
+                ⭐⭐⭐⭐ <span class="badge badge-phi" style="margin-left:4px">4/5</span>
+                <div class="rat-bar rat-phi">
+                  <div class="rat-fill" style="width:80%"></div>
+                </div>
+              </td>
+              <td style="font-size:.8rem">Both are usable in production with review. Qwen3 preferred for accuracy; Phi-4
+                preferred for speed and operational throughput.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div> -->
+
+
+    <!-- ═══ E. SIDE-BY-SIDE OUTPUT ANALYSIS ═══ -->
+    <div class="sec">
+      <div class="sec-hd">
+        <div class="ico">E</div>
+        <h2>Side-by-Side Output Analysis</h2><span class="sec-num">§07</span>
+      </div>
+
+      <!-- Transcript 1 -->
+      <div style="margin-bottom:1.5rem">
+        <div
+          style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:.75rem">
+          Transcript 1 — Scheduling &amp; Email Policy Meeting</div>
+        <div class="side-grid">
+          <div class="model-card" style="border-color:var(--qwen)">
+            <div class="model-card-hd" style="background:var(--qwen-bg)">
+              <div class="model-avatar" style="background:var(--qwen)">Q3</div>
+              <div>
+                <div style="font-weight:700;font-size:.875rem;color:var(--qwen)">Qwen3:4B — 1,567 s</div>
+                <div style="font-size:.7rem;color:var(--muted)">Scheduling &amp; email policy</div>
+              </div>
+              <span class="badge badge-amber" style="margin-left:auto">Partial sections</span>
+            </div>
+            <div class="model-card-body">
+              <strong>Strengths:</strong> Correctly identifies the core agenda items (scheduling conflicts, email
+              labelling policy). Concisely summarises the double-booking problem between Outlook and web tracker.
+              Correctly records the two formal decisions (scheduling policy comms, email label policy). Avoids
+              fabricating participant names beyond what is stated.<br><br>
+              <strong>Weaknesses:</strong> Does not include the office party agenda item at all. Missing Action Items,
+              Deferred Matters, Risks, Open Questions, and Next Steps sections in the output — these sections were
+              truncated. The thinking process (Qwen3 chain-of-thought) significantly inflated generation time to over 26
+              minutes for a 7-minute meeting transcript.
+            </div>
+          </div>
+          <div class="model-card" style="border-color:var(--phi)">
+            <div class="model-card-hd" style="background:var(--phi-bg)">
+              <div class="model-avatar" style="background:var(--phi)">Φ4</div>
+              <div>
+                <div style="font-weight:700;font-size:.875rem;color:var(--phi)">Phi-4 Mini — 232 s</div>
+                <div style="font-size:.7rem;color:var(--muted)">Scheduling &amp; email policy</div>
+              </div>
+              <span class="badge badge-green" style="margin-left:auto">Complete</span>
+            </div>
+            <div class="model-card-body">
+              <strong>Strengths:</strong> All required MoM headings are present and populated. Captures all three agenda
+              topics including the office party discussion. Action Items section identifies "Ellen" and the Chair with
+              specific tasks. Deferred Matters, Risks, and Next Steps are all included. Completed in under 4
+              minutes.<br><br>
+              <strong>Weaknesses:</strong> Adds unsolicited meta-commentary ("Note: In a real-world scenario, it would
+              be best practice to identify who led the meeting if possible.") which is unprofessional in formal minutes.
+              The word "myself" appears as a description indicating slight first-person leakage. Risks section slightly
+              fabricates "unclear policies" as a concern rather than restricting to what was stated.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transcript 2 -->
+      <div style="margin-bottom:1.5rem">
+        <div
+          style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:.75rem">
+          Transcript 2 — Pakistan Cabinet Meeting Address</div>
+        <div class="side-grid">
+          <div class="model-card" style="border-color:var(--qwen)">
+            <div class="model-card-hd" style="background:var(--qwen-bg)">
+              <div class="model-avatar" style="background:var(--qwen)">Q3</div>
+              <div>
+                <div style="font-weight:700;font-size:.875rem;color:var(--qwen)">Qwen3:4B — 1,461 s</div>
+                <div style="font-size:.7rem;color:var(--muted)">Cabinet address</div>
+              </div>
+              <span class="badge badge-green" style="margin-left:auto">Strong output</span>
+            </div>
+            <div class="model-card-body">
+              <strong>Strengths:</strong> Correctly identifies all three agenda items (transaction approval, award
+              recognition, PTI dialogue). Correctly records "No clear decisions" where none were formally made —
+              demonstrating good prompt adherence. Properly identifies the PTI dialogue invitation as a "Deferred /
+              Pending Matter".<br><br>
+              <strong>Weaknesses:</strong> Generation time of ~24 minutes for a 3-minute transcript is operationally
+              unacceptable. Minor — the word "Marala" does not appear in the transcript; however Qwen3 avoided
+              introducing it correctly (Phi-4 did not).
+            </div>
+          </div>
+          <div class="model-card" style="border-color:var(--phi)">
+            <div class="model-card-hd" style="background:var(--phi-bg)">
+              <div class="model-avatar" style="background:var(--phi)">Φ4</div>
+              <div>
+                <div style="font-weight:700;font-size:.875rem;color:var(--phi)">Phi-4 Mini — 185 s</div>
+                <div style="font-size:.7rem;color:var(--muted)">Cabinet address</div>
+              </div>
+              <span class="badge badge-amber" style="margin-left:auto">Minor issues</span>
+            </div>
+            <div class="model-card-body">
+              <strong>Strengths:</strong> Fast output (~3 minutes). Attempts all sections. Captures the
+              transparency/competition aspect of the transaction announcement.<br><br>
+              <strong>Weaknesses:</strong> References "Marala transaction" as the meeting title when "Marala" does not
+              appear in transcript_2.txt — a factual error indicating context bleed or hallucination. Missing Deferred
+              Matters and Risks sections. Action Items section states "No action items" which is correct, but the output
+              does not acknowledge the PTI dialogue as a pending matter, which Qwen3 correctly captured. Adds a
+              parenthetical note about the source file which is not appropriate in formal minutes.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transcript 3 -->
+      <div style="margin-bottom:1rem">
+        <div
+          style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:.75rem">
+          Transcript 3 — Pakistan Senate Committee Proceedings</div>
+        <div class="side-grid">
+          <div class="model-card" style="border-color:var(--qwen)">
+            <div class="model-card-hd" style="background:var(--qwen-bg)">
+              <div class="model-avatar" style="background:var(--qwen)">Q3</div>
+              <div>
+                <div style="font-weight:700;font-size:.875rem;color:var(--qwen)">Qwen3:4B — 238 s</div>
+                <div style="font-size:.7rem;color:var(--muted)">Senate proceedings</div>
+              </div>
+              <span class="badge badge-green" style="margin-left:auto">Best output overall</span>
+            </div>
+            <div class="model-card-body">
+              <strong>Strengths:</strong> Correctly extracts named participants (Senator Aisha Raza, Senator Salim
+              Madhubwala, Mr. Tony Jal, Mr. Kamran Murta, Attorney General). Correctly structures all discussion
+              sub-sections. All five action items are plausibly derived from the transcript. Captures constitutional
+              discussion, Bounty Rape legislation, and prosecution service issues accurately. Professional tone
+              throughout. No hallucinations detected.<br><br>
+              <strong>Weaknesses:</strong> Includes some brief verbatim quotes embedded in the summary (minor violation
+              of "do not reproduce transcript verbatim"). Format deviates slightly from the prescribed MoM template
+              (uses "ATTENDEES" instead of "Participants" heading). Date/venue left as "TBA" which is accurate but could
+              be noted differently.
+            </div>
+          </div>
+          <div class="model-card" style="border-color:var(--phi)">
+            <div class="model-card-hd" style="background:var(--phi-bg)">
+              <div class="model-avatar" style="background:var(--phi)">Φ4</div>
+              <div>
+                <div style="font-weight:700;font-size:.875rem;color:var(--phi)">Phi-4 Mini — 272 s</div>
+                <div style="font-size:.7rem;color:var(--muted)">Senate proceedings</div>
+              </div>
+              <span class="badge badge-red" style="margin-left:auto">Insufficient</span>
+            </div>
+            <div class="model-card-body">
+              <strong>Strengths:</strong> Attempts to identify the core constitutional conflict (Article 69). Correct in
+              identifying the Senate's autonomy argument as the primary topic.<br><br>
+              <strong>Weaknesses:</strong> Output is a condensed 4-topic key-points summary rather than a structured
+              MoM. Does not use the required headings (Meeting Title, Chair, Participants, Agenda, Summary of
+              Proceedings, Decisions, Action Items, etc.). Missing: participants, deferred matters, risks, open
+              questions, next steps, and closing note. The output quality is significantly below standard for formal
+              legislative proceedings. Phi-4 Mini appears to struggle with the complexity and length of this transcript
+              relative to Qwen3.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ═══ H. ERROR ANALYSIS ═══
+    <div class="sec">
+      <div class="sec-hd">
+        <div class="ico">H</div>
+        <h2>Error Analysis</h2><span class="sec-num">§08</span>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Error Type</th>
+              <th>Qwen3:4B</th>
+              <th>Phi-4 Mini</th>
+              <th>Severity</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Missing Sections</strong></td>
+              <td>Action Items, Deferred Matters, Risks, Open Questions, Next Steps missing on T1. Date/Venue listed as
+                TBA on T3.</td>
+              <td>Full MoM structure absent on T3. Deferred Matters and Risks absent on T2.</td>
+              <td><span class="badge badge-amber">Medium</span></td>
+            </tr>
+            <tr>
+              <td><strong>Hallucination / Factual Error</strong></td>
+              <td>None detected. Correctly uses "not clearly identified" where applicable.</td>
+              <td>References "Marala transaction" (T2 meeting title) — term not present in transcript_2.txt. Possible
+                context bleed from transcript_3.txt.</td>
+              <td><span class="badge badge-red">High (Phi-4, T2)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Verbatim Reproduction</strong></td>
+              <td>T3: Brief embedded quotes in discussion section ("the courts are interfering in the committee's
+                business").</td>
+              <td>None noted.</td>
+              <td><span class="badge badge-amber">Low–Medium</span></td>
+            </tr>
+            <tr>
+              <td><strong>Meta-Notes / Prompt Leakage</strong></td>
+              <td>None detected.</td>
+              <td>T1: "Note: In a real-world scenario…" — T2: "(Note: In a formal setting, this would typically be…)" —
+                T3: "Further discussions with Supreme Court…" (speculative). Also appends "--- File reference ---
+                Transcript_1.txt ---".</td>
+              <td><span class="badge badge-amber">Medium</span></td>
+            </tr>
+            <tr>
+              <td><strong>Discussion Listed as Decision</strong></td>
+              <td>Not observed. Correctly uses "No clear decisions" where appropriate.</td>
+              <td>T2: "Initiate transparent procedures…" listed as a Decision when it was discussion-level content.</td>
+              <td><span class="badge badge-amber">Medium</span></td>
+            </tr>
+            <tr>
+              <td><strong>Output Corruption / Truncation</strong></td>
+              <td>T1: Output ends after Decisions section; remaining headings not rendered.</td>
+              <td>T3: Output is a 4-point key-points summary rather than full MoM structure.</td>
+              <td><span class="badge badge-red">High (both)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Incorrect Heading Usage</strong></td>
+              <td>T3: Uses "ATTENDEES" instead of "Participants". Uses "END OF MEETING" instead of "Closing Note".</td>
+              <td>T1: Chair described as "referred to as 'I' for simplicity" — informal phrasing in formal output.</td>
+              <td><span class="badge badge-gray">Low</span></td>
+            </tr>
+            <tr>
+              <td><strong>Performance / Speed</strong></td>
+              <td>T1: 1,567 s; T2: 1,461 s — impractical for frequent use. T3: 238 s is acceptable.</td>
+              <td>All three within 272 s maximum — consistently fast.</td>
+              <td><span class="badge badge-red">Critical (Qwen3 T1/T2)</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout" style="margin-top:1rem">
+        <strong>Observation on Qwen3 Thinking Mode:</strong> Qwen3:4B's chain-of-thought reasoning mode (enabled by
+        default) appears to be the primary driver of its extreme generation times on short transcripts (T1 and T2). On
+        T3 (the longest transcript), its time drops to 238 s — suggesting the model's thinking overhead is
+        proportionally larger relative to very short inputs. Disabling the thinking mode via Ollama configuration (<code
+          style="font-family:'JetBrains Mono',monospace;font-size:.8em;background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px">/no_think</code>
+        or model options) may dramatically reduce generation time while retaining output quality.
+      </div>
+    </div> -->
+
+
+    <!-- ═══ I. RESOURCE EFFICIENCY ═══
+    <div class="sec">
+      <div class="sec-hd">
+        <div class="ico">I</div>
+        <h2>Resource Efficiency Analysis</h2><span class="sec-num">§09</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem">
+        <div class="card card-body">
+          <div
+            style="font-family:'Playfair Display',serif;font-size:.9375rem;font-weight:700;color:var(--qwen);margin-bottom:.75rem">
+            Qwen3:4B (Q4_K_M)</div>
+          <ul style="font-size:.875rem;color:var(--ink2);line-height:2;padding-left:1.1rem">
+            <li><strong>CPU Suitability:</strong> <span class="badge badge-amber">Conditional</span> — Usable but slow
+              on short inputs</li>
+            <li><strong>RAM Efficiency:</strong> ~3.5–4.5 GB model weight usage; fits within 16 GB with OS overhead</li>
+            <li><strong>Practical Usability:</strong> Suitable for batch/overnight processing only at current speeds
+            </li>
+            <li><strong>Quality-to-Speed Ratio:</strong> High quality, very low speed — best for critical accuracy use
+              cases</li>
+            <li><strong>Thinking Mode Impact:</strong> Major contributor to slow T1/T2 times; recommend disabling for
+              production</li>
+          </ul>
+        </div>
+        <div class="card card-body">
+          <div
+            style="font-family:'Playfair Display',serif;font-size:.9375rem;font-weight:700;color:var(--phi);margin-bottom:.75rem">
+            Phi-4 Mini (GGUF)</div>
+          <ul style="font-size:.875rem;color:var(--ink2);line-height:2;padding-left:1.1rem">
+            <li><strong>CPU Suitability:</strong> <span class="badge badge-green">Excellent</span> — Consistent
+              sub-5-minute times</li>
+            <li><strong>RAM Efficiency:</strong> ~3.0–4.0 GB model weight; leaves ample headroom on 16 GB</li>
+            <li><strong>Practical Usability:</strong> Suitable for real-time or near-real-time MoM generation</li>
+            <li><strong>Quality-to-Speed Ratio:</strong> Good quality, excellent speed — best balance for production
+            </li>
+            <li><strong>Complex Transcript Limitation:</strong> Struggles with long legislative transcripts; output
+              degrades on T3</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout teal">
+        <strong>Production Recommendation:</strong> For an Intel i5 8th Gen with 16 GB RAM, Phi-4 Mini in GGUF format
+        delivers the best operational throughput. For scenarios where output accuracy is critical (e.g.,
+        legal/government meetings), Qwen3:4B should be used with thinking mode disabled and applied specifically to
+        complex, long transcripts. A hybrid workflow — Phi-4 Mini for routine meetings, Qwen3:4B for formal proceedings
+        — is optimal.
+      </div>
+    </div> -->
+
+
+    <!-- ═══ F. RECOMMENDED ADDITIONAL MODELS ═══ -->
+    <div class="sec">
+      <div class="sec-hd">
+        <div class="ico">F</div>
+        <h2>Recommended Additional Models</h2><span class="sec-num">§10</span>
+      </div>
+      <p style="font-size:.875rem;color:var(--muted);margin-bottom:1rem">All recommendations are scoped to Intel i5 8th
+        Gen · 16 GB RAM · CPU-only inference via Ollama or llama.cpp.</p>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Params</th>
+              <th>Est. RAM</th>
+              <th>Quantization</th>
+              <th>MoM Quality</th>
+              <th>CPU Fit</th>
+              <th>Pros</th>
+              <th>Cons</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="rec-good">
+              <td><strong>Qwen3:4B</strong> <span class="badge badge-winner">★ Tested</span></td>
+              <td>4B</td>
+              <td>3.5–4.5 GB</td>
+              <td>Q4_K_M</td>
+              <td><span class="badge badge-green">High</span></td>
+              <td><span class="badge badge-amber">Conditional</span></td>
+              <td style="font-size:.8rem">Accurate, thinking mode, low hallucination</td>
+              <td style="font-size:.8rem">Very slow on short transcripts</td>
+            </tr>
+            <tr class="rec-good">
+              <td><strong>Phi-4 Mini</strong> <span class="badge badge-winner">★ Tested</span></td>
+              <td>~3.8B</td>
+              <td>3.0–4.0 GB</td>
+              <td>GGUF</td>
+              <td><span class="badge badge-teal">Good</span></td>
+              <td><span class="badge badge-green">Excellent</span></td>
+              <td style="font-size:.8rem">Fast, structured output, reliable</td>
+              <td style="font-size:.8rem">Struggles with complex long transcripts</td>
+            </tr>
+            <tr>
+              <td><strong>Gemma 3 4B</strong></td>
+              <td>4B</td>
+              <td>3.5–4.5 GB</td>
+              <td>Q4_K_M recommended</td>
+              <td><span class="badge badge-teal">Good</span></td>
+              <td><span class="badge badge-green">Good</span></td>
+              <td style="font-size:.8rem">Strong instruction following, multilingual, Google-backed</td>
+              <td style="font-size:.8rem">Slightly slower than Phi-4; newer, less tested locally</td>
+            </tr>
+            <tr>
+              <td><strong>Qwen3:8B</strong></td>
+              <td>8B</td>
+              <td>7–9 GB</td>
+              <td>Q4_K_M recommended</td>
+              <td><span class="badge badge-green">Very High</span></td>
+              <td><span class="badge badge-amber">Marginal</span></td>
+              <td style="font-size:.8rem">Significantly better accuracy than 4B; strong on complex proceedings</td>
+              <td style="font-size:.8rem">Tight on 16 GB; generation times will be long; may cause RAM pressure</td>
+            </tr>
+            <tr>
+              <td><strong>Llama 3.2 3B</strong></td>
+              <td>3B</td>
+              <td>2.5–3.5 GB</td>
+              <td>Q4_K_M recommended</td>
+              <td><span class="badge badge-amber">Moderate</span></td>
+              <td><span class="badge badge-green">Excellent</span></td>
+              <td style="font-size:.8rem">Very fast; lightweight; good for simple meeting transcripts</td>
+              <td style="font-size:.8rem">Lower quality on complex formal proceedings; may miss nuanced decisions</td>
+            </tr>
+            <tr>
+              <td><strong>Mistral 7B Instruct</strong></td>
+              <td>7B</td>
+              <td>5–7 GB</td>
+              <td>Q4_K_M recommended</td>
+              <td><span class="badge badge-teal">Good–High</span></td>
+              <td><span class="badge badge-amber">Acceptable</span></td>
+              <td style="font-size:.8rem">Well-regarded for instruction tasks; good balance of quality and speed</td>
+              <td style="font-size:.8rem">Higher RAM requirement; slower than Phi-4; may stress 16 GB system</td>
+            </tr>
+            <tr class="rec-mid">
+              <td><strong>Gemma 3 7B</strong></td>
+              <td>7B</td>
+              <td>5–7 GB</td>
+              <td>Q4_K_M recommended</td>
+              <td><span class="badge badge-green">High</span></td>
+              <td><span class="badge badge-amber">Conditional</span></td>
+              <td style="font-size:.8rem">High quality outputs; strong at structured tasks</td>
+              <td style="font-size:.8rem">Similar constraints to Mistral 7B; RAM-heavy for this hardware</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout gold" style="margin-top:1rem">
+        <strong>Priority Recommendation:</strong> The next model to test should be <strong>Gemma 3 4B (Q4_K_M)</strong>.
+        It offers comparable parameter count and RAM footprint to the two tested models, strong instruction-following,
+        multilingual capability (useful for Urdu-English transcripts like T2/T3), and is available via Ollama. It is the
+        most likely candidate to outperform both Qwen3:4B and Phi-4 Mini on a balanced quality-speed basis.
+      </div>
+    </div>
+
+
+    <!-- ═══ G. FINAL RECOMMENDATION ═══ -->
+    <div class="sec">
+      <div class="sec-hd">
+        <div class="ico">G</div>
+        <h2>Final Recommendation</h2><span class="sec-num">§11</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.5rem">
+        <div class="kpi" style="border-top:3px solid var(--gold)">
+          <div class="kpi-ico">🏆</div>
+          <div class="kpi-label">Best Overall</div>
+          <div class="kpi-val" style="font-size:1.1rem">Phi-4 Mini</div>
+          <div class="kpi-note">Speed + quality balance; production-ready</div>
+        </div>
+        <div class="kpi" style="border-top:3px solid var(--qwen)">
+          <div class="kpi-ico">🎯</div>
+          <div class="kpi-label">Best Quality</div>
+          <div class="kpi-val" style="font-size:1.1rem">Qwen3:4B</div>
+          <div class="kpi-note">Highest accuracy, lowest hallucination risk</div>
+        </div>
+        <div class="kpi" style="border-top:3px solid var(--teal)">
+          <div class="kpi-ico">⚡</div>
+          <div class="kpi-label">Best Speed</div>
+          <div class="kpi-val" style="font-size:1.1rem">Phi-4 Mini</div>
+          <div class="kpi-note">4.7× faster, sub-5-min per transcript</div>
+        </div>
+        <div class="kpi" style="border-top:3px solid var(--phi)">
+          <div class="kpi-ico">💻</div>
+          <div class="kpi-label">Best CPU-Friendly</div>
+          <div class="kpi-val" style="font-size:1.1rem">Phi-4 Mini</div>
+          <div class="kpi-note">Consistent on i5 8th Gen; low RAM pressure</div>
+        </div>
+        <div class="kpi" style="border-top:3px solid var(--acc)">
+          <div class="kpi-ico">🚀</div>
+          <div class="kpi-label">Recommended Production</div>
+          <div class="kpi-val" style="font-size:1.1rem">Phi-4 Mini</div>
+          <div class="kpi-note">Primary; Qwen3:4B (no-think) as fallback</div>
+        </div>
+      </div>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Use Case</th>
+              <th>Recommended Model</th>
+              <th>Configuration</th>
+              <th>Rationale</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Routine internal meetings (short, informal)</td>
+              <td><span class="badge badge-phi">Phi-4 Mini</span></td>
+              <td>Standard Ollama GGUF import</td>
+              <td style="font-size:.8rem">Fast, structured output; handles informal transcripts well</td>
+            </tr>
+            <tr>
+              <td>Formal government / legislative proceedings</td>
+              <td><span class="badge badge-qwen">Qwen3:4B</span></td>
+              <td>Thinking mode disabled (<code
+                  style="font-family:'JetBrains Mono',monospace;font-size:.8em">/no_think</code>)</td>
+              <td style="font-size:.8rem">Superior accuracy, participant extraction, decision logic</td>
+            </tr>
+            <tr>
+              <td>Multilingual transcripts (Urdu-English)</td>
+              <td><span class="badge badge-qwen">Qwen3:4B</span></td>
+              <td>Default; Q4_K_M</td>
+              <td style="font-size:.8rem">Better multilingual comprehension; handles translated proceedings accurately
+              </td>
+            </tr>
+            <tr>
+              <td>High-volume batch processing</td>
+              <td><span class="badge badge-phi">Phi-4 Mini</span></td>
+              <td>GGUF; shorter prompt variant</td>
+              <td style="font-size:.8rem">4.7× throughput advantage; feasible for overnight runs</td>
+            </tr>
+            <tr>
+              <td>Next model to evaluate</td>
+              <td><span class="badge badge-gold">Gemma 3 4B</span></td>
+              <td>Q4_K_M via Ollama</td>
+              <td style="font-size:.8rem">Strong instruction following; potentially outperforms both tested models</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+
+    <!-- ═══ L. CONCLUSION ═══
+    <div class="sec">
+      <div class="sec-hd">
+        <div class="ico">L</div>
+        <h2>Conclusion</h2><span class="sec-num">§12</span>
+      </div>
+
+      <div class="card card-body" style="border-left:4px solid var(--acc)">
+        <p style="font-size:.9375rem;line-height:1.8;color:var(--ink2);margin-bottom:1rem">
+          This evaluation confirms that automated Minutes of Meeting generation is feasible on consumer-grade CPU
+          hardware (Intel i5 8th Gen, 16 GB RAM) using locally-hosted quantised language models. Both Qwen3:4B and Phi-4
+          Mini produced usable MoM output without hallucinating participant names, fabricating decisions, or violating
+          the core rules of the MoM prompt.
+        </p>
+        <p style="font-size:.9375rem;line-height:1.8;color:var(--ink2);margin-bottom:1rem">
+          <strong>Phi-4 Mini</strong> is the recommended primary production model for this hardware configuration. It
+          consistently completes all three transcript types within 5 minutes, produces well-structured output, and
+          remains within safe RAM limits. Its main limitation — reduced quality on very long legislative transcripts —
+          can be mitigated by using Qwen3:4B as a secondary model for complex formal proceedings.
+        </p>
+        <p style="font-size:.9375rem;line-height:1.8;color:var(--ink2);margin-bottom:1rem">
+          <strong>Qwen3:4B</strong> demonstrates superior accuracy and reasoning but is operationally impractical on
+          this hardware for short transcripts due to its chain-of-thought thinking mode. Disabling this mode (via Ollama
+          configuration) is strongly recommended before any production deployment, as it is the most likely cause of the
+          25+ minute generation times observed on T1 and T2.
+        </p>
+        <p style="font-size:.9375rem;line-height:1.8;color:var(--ink2)">
+          The immediate next step should be testing <strong>Gemma 3 4B</strong> under the same conditions, as it
+          represents the most promising candidate for improving upon both evaluated models. The long-term goal of a
+          single CPU-hosted model that reliably handles all transcript types — informal, formal, multilingual — on this
+          hardware is achievable with further evaluation.
+        </p>
+      </div>
+
+      <hr class="sep" />
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;font-size:.8125rem">
+        <div>
+          <p style="font-weight:700;color:var(--ink);margin-bottom:.375rem">Prepared by</p>
+          <p style="color:var(--muted)">Evaluation conducted on Intel i5 8th Gen hardware<br>Inference via Ollama · June
+            5, 2026</p>
+        </div>
+        <div style="text-align:right">
+          <p style="font-weight:700;color:var(--ink);margin-bottom:.375rem">Report Reference</p>
+          <p style="font-family:'JetBrains Mono',monospace;color:var(--muted)">LOCAL-LLM-MOM-EVAL-001<br>report1.html ·
+            v1.0</p>
+        </div>
+      </div>
+    </div> -->
+
+
+    <div class="footer">
+      Local LLM Minutes of Meeting Evaluation · Qwen3:4B vs Phi-4 Mini · 2026 · Self-contained report · For internal
+      distribution only
+    </div>
+
+  </div><!-- /page-wrap -->
+</body>
+
+</html>
